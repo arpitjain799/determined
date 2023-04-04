@@ -41,13 +41,10 @@ type FileInfo = {
 };
 
 export type Props = {
-  editable?: boolean;
-  experimentId?: number;
-  files?: FileInfo[];
+  files: FileInfo[];
   onSelectFile?: (arg0: string) => void;
-  runtimeConfig?: RawJson;
+  readonly?: boolean;
   selectedFilePath?: string;
-  submittedConfig?: string;
 };
 
 interface TreeNode extends DataNode {
@@ -156,10 +153,9 @@ const isConfig = (key: unknown): key is Config =>
  */
 
 const CodeEditor: React.FC<Props> = ({
-  editable,
-  experimentId,
   files,
   onSelectFile,
+  readonly,
   runtimeConfig: _runtimeConfig,
   selectedFilePath,
   submittedConfig: _submittedConfig,
@@ -509,7 +505,7 @@ const CodeEditor: React.FC<Props> = ({
                  */
                 <Tooltip title="Download File">
                   <DownloadOutlined
-                    className={editable ? css.hideElement : css.noBorderButton}
+                    className={readonly ? css.noBorderButton : css.hideElement}
                     onClick={handleDownloadClick}
                   />
                   {/* this is an invisible button to programatically download the config files */}
@@ -555,7 +551,7 @@ const CodeEditor: React.FC<Props> = ({
                   size: 'fit',
                 },
                 occurrencesHighlight: false,
-                readOnly: !editable,
+                readOnly: readonly,
                 showFoldingControls: 'always',
               }}
               value={activeFile?.text}
