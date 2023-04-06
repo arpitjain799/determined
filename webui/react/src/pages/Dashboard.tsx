@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import ExperimentIcons from 'components/ExperimentIcons';
+import FilterForm from 'components/FilterForm/FilterForm';
 import JupyterLabButton from 'components/JupyterLabButton';
 import Breadcrumb from 'components/kit/Breadcrumb';
 import Card from 'components/kit/Card';
@@ -180,6 +181,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <Page options={<JupyterLabButton enabled={canCreateNSC} />} title="Home">
+      <FilterForm />
       {projectsLoading ? (
         <Section>
           <Spinner center />

@@ -1,0 +1,18 @@
+.group {
+  border: 1px solid red;
+  padding: 12px;
+}
+.field {
+  border: 1px solid skyblue;
+  display: flex;
+  gap: 8px;
+}
+.conjunction {
+  color: orange;
+}
+.drag {
+  background-color: chartreuse;
+}
+.dragGroup {
+  background-color: hotpink;
+}
