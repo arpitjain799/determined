@@ -1,18 +1,20 @@
-import { observable, WritableObservable } from 'micro-observables';
+import { Observable, observable } from 'micro-observables';
 
-import { FilterForm, FormField, FormGroup } from './type';
+import { FilterFormSet, FormField, FormGroup } from './type';
 
 export class FormClassStore {
-  #formset = observable<FilterForm>({
-    filterSet: { children: [], conjunction: 'and', id: 'first', type: 'group' },
+  #formset = observable<FilterFormSet>({
+    filterSet: { children: [], conjunction: 'and', id: 'ROOT', type: 'group' }, // default
   });
 
-  constructor(data: FilterForm) {
-    this.#formset = observable<FilterForm>(data);
+  constructor(data?: FilterFormSet) {
+    if (data) {
+      this.#formset = observable<FilterFormSet>(data);
+    }
   }
 
-  public get formset(): WritableObservable<Readonly<FilterForm>> {
-    return this.#formset;
+  public get formset(): Observable<Readonly<FilterFormSet>> {
+    return this.#formset.readOnly();
   }
 
   public setValue(id: string, value: string | string[] | number | number[]): void {
@@ -39,7 +41,7 @@ export class FormClassStore {
     if (ans) {
       if (ans.type === 'field') {
         ans.value = value;
-        this.#formset = observable({ filterSet: set });
+        this.#formset.set({ filterSet: set });
       }
     }
   }
@@ -81,7 +83,7 @@ export class FormClassStore {
       }
     };
     recur(set);
-    this.#formset = observable({ filterSet: set });
+    this.#formset.set({ filterSet: set });
   }
 
   public removeChild(id: string): void {
@@ -95,6 +97,58 @@ export class FormClassStore {
       }
     };
     recur(set);
-    this.#formset = observable({ filterSet: set });
+    this.#formset.set({ filterSet: set });
   }
 }
+
+export const formSets: FilterFormSet = {
+  filterSet: {
+    children: [
+      {
+        columnName: 'level1',
+        id: 'level1',
+        operator: 'contains',
+        type: 'field',
+        value: 'test',
+      },
+      {
+        children: [
+          {
+            columnName: 'string',
+            id: 'stringdsdff123',
+            operator: 'contains',
+            type: 'field',
+            value: 'test',
+          },
+          {
+            columnName: 'string',
+            id: 'stringdsdff3',
+            operator: 'contains',
+            type: 'field',
+            value: 'test',
+          },
+        ],
+        conjunction: 'and',
+        id: 'sdsdff',
+        type: 'group',
+      },
+      {
+        columnName: 'string',
+        id: 'stringdf123',
+        operator: 'contains',
+        type: 'field',
+        value: 'test',
+      },
+      {
+        columnName: 'string',
+        id: 'gsstringdfs123',
+        operator: 'contains',
+        type: 'field',
+        value: 'test',
+      },
+    ],
+    conjunction: 'and',
+    id: 'ROOT',
+    type: 'group',
+  },
+};
