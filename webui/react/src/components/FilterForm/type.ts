@@ -4,18 +4,18 @@ export const ItemTypes = {
 } as const;
 
 export interface FormField {
-  id: string;
-  type: typeof ItemTypes.FIELD;
+  readonly id: string;
+  readonly type: typeof ItemTypes.FIELD;
   columnName: string;
-  operator: string;
-  value: string | string[] | number | number[];
+  operator: Operator;
+  value: string | string[] | number | number[] | undefined;
 }
 
 export type Conjunction = 'and' | 'or';
 
 export interface FormGroup {
-  id: string;
-  type: typeof ItemTypes.GROUP;
+  readonly id: string;
+  readonly type: typeof ItemTypes.GROUP;
   conjunction: Conjunction;
   children: (FormGroup | FormField)[];
 }
@@ -23,3 +23,36 @@ export interface FormGroup {
 export interface FilterFormSet {
   filterSet: FormGroup;
 }
+
+export type Operator =
+  | 'contains'
+  | 'in'
+  | 'is'
+  | 'eq'
+  | 'greater'
+  | 'greaterEq'
+  | 'isEmpty'
+  | 'isNot'
+  | 'less'
+  | 'lessEq'
+  | 'notContain'
+  | 'notEmpty'
+  | 'notEq'
+  | 'notIn';
+
+export const OperatorMap: Record<Operator, string> = {
+  contains: 'contains',
+  eq: '=',
+  greater: '>',
+  greaterEq: '>=',
+  in: 'in',
+  is: 'is',
+  isEmpty: 'is empty',
+  isNot: 'is not',
+  less: '<',
+  lessEq: '<=',
+  notContain: 'not contains',
+  notEmpty: 'not empty',
+  notEq: '!=',
+  notIn: 'not in',
+} as const;

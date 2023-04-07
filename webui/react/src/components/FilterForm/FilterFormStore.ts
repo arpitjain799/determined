@@ -1,11 +1,13 @@
 import { Observable, observable } from 'micro-observables';
 
-import { FilterFormSet, FormField, FormGroup } from './type';
+import { FilterFormSet, FormField, FormGroup, Operator } from './type';
+
+const INIT_FORMSET: FilterFormSet = {
+  filterSet: { children: [], conjunction: 'and', id: 'ROOT', type: 'group' }, // default
+};
 
 export class FormClassStore {
-  #formset = observable<FilterFormSet>({
-    filterSet: { children: [], conjunction: 'and', id: 'ROOT', type: 'group' }, // default
-  });
+  #formset = observable<FilterFormSet>(INIT_FORMSET);
 
   constructor(data?: FilterFormSet) {
     if (data) {
@@ -17,7 +19,13 @@ export class FormClassStore {
     return this.#formset.readOnly();
   }
 
-  public setValue(id: string, value: string | string[] | number | number[]): void {
+  public setFieldValue(
+    id: string,
+    keyType:
+      | keyof Pick<FormField, 'columnName' | 'operator' | 'value'>
+      | keyof Pick<FormGroup, 'conjunction'>,
+    value: string | string[] | number | number[],
+  ): void {
     const set = this.#formset.get().filterSet;
     const recur = (form: FormGroup | FormField): FormGroup | FormField | undefined => {
       if (form.id === id) {
@@ -35,41 +43,57 @@ export class FormClassStore {
           }
         }
       }
+      return undefined;
     };
+
     const ans = recur(set);
 
     if (ans) {
       if (ans.type === 'field') {
-        ans.value = value;
-        this.#formset.set({ filterSet: set });
+        if (keyType === 'columnName' && typeof value === 'string') {
+          ans.columnName = value;
+        } else if (keyType === 'operator' && typeof value === 'string') {
+          ans.operator = value as Operator;
+        } else if (keyType === 'value') {
+          ans.value = value;
+        }
+      } else if (ans.type === 'group') {
+        if (keyType === 'conjunction' && (value === 'and' || value === 'or')) {
+          ans.conjunction = value;
+        }
       }
+      this.#formset.set({ filterSet: set });
     }
   }
 
-  public addChild(id: string, addType: 'group' | 'field', obj?: FormGroup | FormField): void {
+  public addChild(
+    id: string,
+    addType: 'group' | 'field',
+    obj?: Readonly<FormGroup | FormField>,
+  ): void {
     const set = this.#formset.get().filterSet;
     const recur = (form: FormGroup | FormField): void => {
       if (form.id === id && form.type === 'group') {
         if (obj) {
-          form.children.push({ ...obj });
+          form.children.push(obj);
           return;
         }
-        if (addType === 'group') {
-          form.children.push({
-            children: [],
-            conjunction: 'and',
-            id: 'sdf',
-            type: 'group',
-          });
-        } else {
-          form.children.push({
-            columnName: 'radfdsf',
-            id: crypto.randomUUID(),
-            operator: 'contains',
-            type: 'field',
-            value: 'new',
-          });
-        }
+        form.children.push(
+          addType === 'group'
+            ? {
+                children: [],
+                conjunction: 'and',
+                id: crypto.randomUUID(),
+                type: 'group',
+              }
+            : {
+                columnName: 'id',
+                id: crypto.randomUUID(),
+                operator: 'contains',
+                type: 'field',
+                value: undefined,
+              },
+        );
         return;
       }
       if (form.type === 'group' && form.children.length === 0) {
@@ -82,12 +106,19 @@ export class FormClassStore {
         }
       }
     };
+
     recur(set);
     this.#formset.set({ filterSet: set });
   }
 
   public removeChild(id: string): void {
     const set = this.#formset.get().filterSet;
+
+    if (set.id === id) {
+      this.#formset.set(structuredClone(INIT_FORMSET));
+      return;
+    }
+
     const recur = (form: FormGroup | FormField): void => {
       if (form.type === 'group') {
         form.children = form.children.filter((c) => c.id !== id);
@@ -105,7 +136,7 @@ export const formSets: FilterFormSet = {
   filterSet: {
     children: [
       {
-        columnName: 'level1',
+        columnName: 'tags',
         id: 'level1',
         operator: 'contains',
         type: 'field',
@@ -114,35 +145,35 @@ export const formSets: FilterFormSet = {
       {
         children: [
           {
-            columnName: 'string',
+            columnName: 'user',
             id: 'stringdsdff123',
-            operator: 'contains',
+            operator: 'eq',
             type: 'field',
-            value: 'test',
+            value: 1,
           },
           {
-            columnName: 'string',
+            columnName: 'state',
             id: 'stringdsdff3',
-            operator: 'contains',
+            operator: 'notEmpty',
             type: 'field',
             value: 'test',
           },
         ],
-        conjunction: 'and',
+        conjunction: 'or',
         id: 'sdsdff',
         type: 'group',
       },
       {
-        columnName: 'string',
+        columnName: 'name',
         id: 'stringdf123',
         operator: 'contains',
         type: 'field',
         value: 'test',
       },
       {
-        columnName: 'string',
+        columnName: 'id',
         id: 'gsstringdfs123',
-        operator: 'contains',
+        operator: 'greaterEq',
         type: 'field',
         value: 'test',
       },

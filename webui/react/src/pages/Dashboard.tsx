@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import ExperimentIcons from 'components/ExperimentIcons';
-import FilterForm from 'components/FilterForm/FilterForm';
-import { FormClassStore, formSets } from 'components/FilterForm/FilterFormStore';
 import JupyterLabButton from 'components/JupyterLabButton';
 import Breadcrumb from 'components/kit/Breadcrumb';
 import Card from 'components/kit/Card';
@@ -44,8 +42,6 @@ import css from './Dashboard.module.scss';
 const SUBMISSIONS_FETCH_LIMIT = 25;
 const PROJECTS_FETCH_LIMIT = 5;
 const DISPLAY_LIMIT = 25;
-
-const formClassStore = new FormClassStore(formSets);
 
 const Dashboard: React.FC = () => {
   const [experiments, setExperiments] = useState<ExperimentItem[]>([]);
@@ -184,7 +180,6 @@ const Dashboard: React.FC = () => {
 
   return (
     <Page options={<JupyterLabButton enabled={canCreateNSC} />} title="Home">
-      <FilterForm formClassStore={formClassStore} />
       {projectsLoading ? (
         <Section>
           <Spinner center />
