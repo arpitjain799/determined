@@ -1,27 +1,36 @@
-export const ItemTypes = {
-  FIELD: 'field',
-  GROUP: 'group',
+import { ValueOf } from 'shared/types';
+
+export const FormType = {
+  Field: 'field',
+  Group: 'group',
 } as const;
+
+export type FormType = ValueOf<typeof FormType>;
 
 export type FormField = {
   readonly id: string;
-  readonly type: typeof ItemTypes.FIELD;
+  readonly type: typeof FormType.Field;
   columnName: string;
   operator: Operator;
   value: string | string[] | number | number[] | undefined;
 };
 
-export type Conjunction = 'and' | 'or';
+export const Conjunction = {
+  and: 'and',
+  or: 'or',
+} as const;
+
+export type Conjunction = ValueOf<typeof Conjunction>;
 
 export type FormGroup = {
   readonly id: string;
-  readonly type: typeof ItemTypes.GROUP;
+  readonly type: typeof FormType.Group;
   conjunction: Conjunction;
   children: (FormGroup | FormField)[];
 };
 
 export type FilterFormSet = {
-  filterSet: FormGroup;
+  filterGroup: FormGroup;
 };
 
 export type Operator =

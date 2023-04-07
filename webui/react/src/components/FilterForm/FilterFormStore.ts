@@ -1,9 +1,28 @@
 import { Observable, observable } from 'micro-observables';
 
-import { FilterFormSet, FormField, FormGroup, Operator } from './type';
+import { Conjunction, FilterFormSet, FormField, FormGroup, FormType, Operator } from './type';
 
 const INIT_FORMSET: FilterFormSet = {
-  filterSet: { children: [], conjunction: 'and', id: 'ROOT', type: 'group' }, // default
+  filterGroup: { children: [], conjunction: Conjunction.and, id: 'ROOT', type: FormType.Group }, // default
+};
+
+const getInitGroup = (): FormGroup => {
+  return {
+    children: [],
+    conjunction: Conjunction.and,
+    id: crypto.randomUUID(),
+    type: FormType.Group,
+  };
+};
+
+const getInitField = (): FormField => {
+  return {
+    columnName: 'id',
+    id: crypto.randomUUID(),
+    operator: 'contains',
+    type: FormType.Field,
+    value: undefined,
+  };
 };
 
 export class FormClassStore {
@@ -26,16 +45,16 @@ export class FormClassStore {
       | keyof Pick<FormGroup, 'conjunction'>,
     value: string | string[] | number | number[],
   ): void {
-    const set = this.#formset.get().filterSet;
+    const set = this.#formset.get().filterGroup;
     const recur = (form: FormGroup | FormField): FormGroup | FormField | undefined => {
       if (form.id === id) {
         return form;
       }
-      if (form.type === 'group' && form.children.length === 0) {
+      if (form.type === FormType.Group && form.children.length === 0) {
         return undefined;
       }
 
-      if (form.type === 'group') {
+      if (form.type === FormType.Group) {
         for (const child of form.children) {
           const ans = recur(child);
           if (ans) {
@@ -49,7 +68,7 @@ export class FormClassStore {
     const ans = recur(set);
 
     if (ans) {
-      if (ans.type === 'field') {
+      if (ans.type === FormType.Field) {
         if (keyType === 'columnName' && typeof value === 'string') {
           ans.columnName = value;
         } else if (keyType === 'operator' && typeof value === 'string') {
@@ -57,51 +76,33 @@ export class FormClassStore {
         } else if (keyType === 'value') {
           ans.value = value;
         }
-      } else if (ans.type === 'group') {
-        if (keyType === 'conjunction' && (value === 'and' || value === 'or')) {
+      } else if (ans.type === FormType.Group) {
+        if (keyType === 'conjunction' && (value === Conjunction.and || value === Conjunction.or)) {
           ans.conjunction = value;
         }
       }
-      this.#formset.set({ filterSet: set });
+      this.#formset.set({ filterGroup: set });
     }
   }
 
   public addChild(
     id: string,
-    addType: 'group' | 'field',
+    addType: FormType,
     index: number,
     obj?: Readonly<FormGroup | FormField>,
   ): void {
-    const set = this.#formset.get().filterSet;
+    const set = this.#formset.get().filterGroup;
     const recur = (form: FormGroup | FormField): void => {
-      if (form.id === id && form.type === 'group') {
+      if (form.id === id && form.type === FormType.Group) {
         if (obj) {
           form.children.splice(index, 0, obj);
-          return;
+        } else {
+          form.children.push(addType === FormType.Group ? getInitGroup() : getInitField());
         }
-        form.children.push(
-          addType === 'group'
-            ? {
-                children: [],
-                conjunction: 'and',
-                id: crypto.randomUUID(),
-                type: 'group',
-              }
-            : {
-                columnName: 'id',
-                id: crypto.randomUUID(),
-                operator: 'contains',
-                type: 'field',
-                value: undefined,
-              },
-        );
-        return;
-      }
-      if (form.type === 'group' && form.children.length === 0) {
         return;
       }
 
-      if (form.type === 'group') {
+      if (form.type === FormType.Group) {
         for (const child of form.children) {
           recur(child);
         }
@@ -109,11 +110,11 @@ export class FormClassStore {
     };
 
     recur(set);
-    this.#formset.set({ filterSet: set });
+    this.#formset.set({ filterGroup: set });
   }
 
   public removeChild(id: string): void {
-    const set = this.#formset.get().filterSet;
+    const set = this.#formset.get().filterGroup;
 
     if (set.id === id) {
       this.#formset.set(structuredClone(INIT_FORMSET));
@@ -121,7 +122,7 @@ export class FormClassStore {
     }
 
     const recur = (form: FormGroup | FormField): void => {
-      if (form.type === 'group') {
+      if (form.type === FormType.Group) {
         form.children = form.children.filter((c) => c.id !== id);
         for (const child of form.children) {
           recur(child);
@@ -129,18 +130,18 @@ export class FormClassStore {
       }
     };
     recur(set);
-    this.#formset.set({ filterSet: set });
+    this.#formset.set({ filterGroup: set });
   }
 }
 
 export const formSets: FilterFormSet = {
-  filterSet: {
+  filterGroup: {
     children: [
       {
         columnName: 'tags',
         id: 'level1',
         operator: 'contains',
-        type: 'field',
+        type: FormType.Field,
         value: 'test',
       },
       {
@@ -149,38 +150,38 @@ export const formSets: FilterFormSet = {
             columnName: 'user',
             id: 'stringdsdff123',
             operator: 'eq',
-            type: 'field',
+            type: FormType.Field,
             value: 1,
           },
           {
             columnName: 'state',
             id: 'stringdsdff3',
             operator: 'notEmpty',
-            type: 'field',
+            type: FormType.Field,
             value: 'test',
           },
         ],
         conjunction: 'or',
         id: 'sdsdff',
-        type: 'group',
+        type: FormType.Group,
       },
       {
         columnName: 'name',
         id: 'stringdf123',
         operator: 'contains',
-        type: 'field',
+        type: FormType.Field,
         value: 'test',
       },
       {
         columnName: 'id',
         id: 'gsstringdfs123',
         operator: 'greaterEq',
-        type: 'field',
+        type: FormType.Field,
         value: 'test',
       },
     ],
-    conjunction: 'and',
+    conjunction: Conjunction.and,
     id: 'ROOT',
-    type: 'group',
+    type: FormType.Group,
   },
 };
