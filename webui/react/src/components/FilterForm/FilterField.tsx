@@ -13,11 +13,18 @@ import { Conjunction, FormField, ItemTypes, Operator, OperatorMap } from './type
 interface Props {
   index: number; // start from 0
   field: FormField;
+  parentId: string;
   conjunction: Conjunction;
   formClassStore: FormClassStore;
 }
 
-const FilterField = ({ field, conjunction, formClassStore, index }: Props): JSX.Element => {
+const FilterField = ({
+  field,
+  conjunction,
+  formClassStore,
+  index,
+  parentId,
+}: Props): JSX.Element => {
   const [, drag, preview] = useDrag<FormField, unknown, unknown>(() => ({
     item: field,
     type: ItemTypes.FIELD,
@@ -25,7 +32,24 @@ const FilterField = ({ field, conjunction, formClassStore, index }: Props): JSX.
 
   return (
     <div className={css.base}>
-      {index !== 0 ? <div>{conjunction}</div> : <div>where</div>}
+      {index === 0 ? (
+        <div>where</div>
+      ) : (
+        <>
+          {index === 1 ? (
+            <Select
+              value={conjunction}
+              onChange={(value: string) => {
+                formClassStore.setFieldValue(parentId, 'conjunction', value);
+              }}>
+              <Select.Option value="and">and</Select.Option>
+              <Select.Option value="or">or</Select.Option>
+            </Select>
+          ) : (
+            <div className={css.conjunction}>{conjunction}</div>
+          )}
+        </>
+      )}
       <div className={css.fieldCard} ref={preview}>
         <div>{field.columnName}</div>
         <Select

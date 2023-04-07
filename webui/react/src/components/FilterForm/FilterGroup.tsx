@@ -1,5 +1,5 @@
 import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
-import { Dropdown } from 'antd';
+import { Dropdown, Select } from 'antd';
 import type { MenuProps } from 'antd';
 import { DropTargetMonitor, useDrag, useDrop } from 'react-dnd';
 
@@ -14,11 +14,19 @@ interface Props {
   conjunction: Conjunction;
   index: number; // start from 0
   group: FormGroup;
+  parentId: string;
   level: number; // start from 0
   formClassStore: FormClassStore;
 }
 
-const FilterGroup = ({ index, conjunction, group, level, formClassStore }: Props): JSX.Element => {
+const FilterGroup = ({
+  index,
+  conjunction,
+  group,
+  level,
+  formClassStore,
+  parentId,
+}: Props): JSX.Element => {
   const [, drag, preview] = useDrag<FormGroup, unknown, unknown>(() => ({
     item: group,
     type: ItemTypes.GROUP,
@@ -34,14 +42,11 @@ const FilterGroup = ({ index, conjunction, group, level, formClassStore }: Props
       canDrop(item, monitor) {
         const isOverCurrent = monitor.isOver({ shallow: true });
         if (isOverCurrent) {
-          if (item.type === 'group') {
-            return (
-              group.id !== item.id &&
-              item.children.filter((c) => c.id === group.id).length === 0 &&
-              level < 2
-            );
-          }
-          return true;
+          return item.type === 'group'
+            ? group.id !== item.id &&
+                item.children.filter((c) => c.id === group.id).length === 0 &&
+                level < 2
+            : true;
         }
         return false;
       },
@@ -93,10 +98,27 @@ const FilterGroup = ({ index, conjunction, group, level, formClassStore }: Props
 
   return (
     <div className={classes.join(' ')} ref={(node) => drop(node)}>
-      {level > 0 ? (
-        <>{index !== 0 ? <div className={css.conjunction}>{conjunction}</div> : <div>where</div>}</>
-      ) : (
-        <div />
+      {level > 0 && (
+        <>
+          {index === 0 ? (
+            <div>where</div>
+          ) : (
+            <>
+              {index === 1 ? (
+                <Select
+                  value={conjunction}
+                  onChange={(value: string) => {
+                    formClassStore.setFieldValue(parentId, 'conjunction', value);
+                  }}>
+                  <Select.Option value="and">and</Select.Option>
+                  <Select.Option value="or">or</Select.Option>
+                </Select>
+              ) : (
+                <div className={css.conjunction}>{conjunction}</div>
+              )}
+            </>
+          )}
+        </>
       )}
       <div className={css.groupCard} ref={preview}>
         <div className={css.header}>
@@ -137,6 +159,7 @@ const FilterGroup = ({ index, conjunction, group, level, formClassStore }: Props
                   index={i}
                   key={child.id}
                   level={level + 1}
+                  parentId={group.id}
                 />
               );
             } else {
@@ -147,6 +170,7 @@ const FilterGroup = ({ index, conjunction, group, level, formClassStore }: Props
                   formClassStore={formClassStore}
                   index={i}
                   key={child.id}
+                  parentId={group.id}
                 />
               );
             }
