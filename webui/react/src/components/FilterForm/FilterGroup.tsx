@@ -42,11 +42,21 @@ const FilterGroup = ({
       canDrop(item, monitor) {
         const isOverCurrent = monitor.isOver({ shallow: true });
         if (isOverCurrent) {
-          return item.type === 'group'
-            ? group.id !== item.id &&
-                item.children.filter((c) => c.id === group.id).length === 0 &&
-                level < 2
-            : true;
+          if (item.type === 'group') {
+            return (
+              // cant self dnd
+              group.id !== item.id &&
+              // cant dnd in self childrens group
+              item.children.filter((c) => c.id === group.id).length === 0 &&
+              // cant dnd with deeper than 2 level group
+              level < 2 &&
+              // cant dnd if sum of source children of group type (0 if none, 1 if children exist)
+              // and target item's level is over 2
+              // 2 is the max depth
+              (item.children.filter((c) => c.type === 'group').length === 0 ? 0 : 1) + level < 2
+            );
+          }
+          return true;
         }
         return false;
       },
