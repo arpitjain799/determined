@@ -3,26 +3,26 @@ export const ItemTypes = {
   GROUP: 'group',
 } as const;
 
-export interface FormField {
+export type FormField = {
   readonly id: string;
   readonly type: typeof ItemTypes.FIELD;
   columnName: string;
   operator: Operator;
   value: string | string[] | number | number[] | undefined;
-}
+};
 
 export type Conjunction = 'and' | 'or';
 
-export interface FormGroup {
+export type FormGroup = {
   readonly id: string;
   readonly type: typeof ItemTypes.GROUP;
   conjunction: Conjunction;
   children: (FormGroup | FormField)[];
-}
+};
 
-export interface FilterFormSet {
+export type FilterFormSet = {
   filterSet: FormGroup;
-}
+};
 
 export type Operator =
   | 'contains'

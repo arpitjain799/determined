@@ -51,9 +51,18 @@ const FilterField = ({
         </>
       )}
       <div className={css.fieldCard} ref={preview}>
-        <div>{field.columnName}</div>
         <Select
-          style={{ width: '150px' }}
+          value={field.columnName}
+          onChange={(value: string) => {
+            formClassStore.setFieldValue(field.id, 'columnName', value);
+          }}>
+          <Select.Option value="id">id</Select.Option>
+          <Select.Option value="tags">tags</Select.Option>
+          <Select.Option value="state">state</Select.Option>
+          <Select.Option value="user">user</Select.Option>
+        </Select>
+        <Select
+          style={{ width: '100%' }}
           value={field.operator}
           onChange={(value: Operator) => {
             formClassStore.setFieldValue(field.id, 'operator', value);
