@@ -1,25 +1,25 @@
 import { useObservable } from 'micro-observables';
 
-import { FormClassStore } from './FilterFormStore';
+import { FilterFormStore } from './FilterFormStore';
 import FilterGroup from './FilterGroup';
 
 interface Props {
-  formClassStore: FormClassStore;
+  formStore: FilterFormStore;
 }
 
-const FilterForm = ({ formClassStore }: Props): JSX.Element => {
-  const data = useObservable(formClassStore.formset);
+const FilterForm = ({ formStore }: Props): JSX.Element => {
+  const data = useObservable(formStore.formset);
   return (
     <div>
       <FilterGroup
         conjunction={data.filterGroup.conjunction}
-        formClassStore={formClassStore}
+        formStore={formStore}
         group={data.filterGroup}
         index={0}
         level={0}
         parentId={data.filterGroup.id}
       />
-      <div>{formClassStore.query}</div>
+      <div>{formStore.query}</div>
     </div>
   );
 };

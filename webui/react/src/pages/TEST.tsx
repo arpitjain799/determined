@@ -2,17 +2,17 @@ import { FilterOutlined } from '@ant-design/icons';
 import { Button, Popconfirm } from 'antd';
 
 import FilterForm from 'components/FilterForm/FilterForm';
-import { FormClassStore, formSets } from 'components/FilterForm/FilterFormStore';
+import { FilterFormStore, formSets } from 'components/FilterForm/FilterFormStore';
 
-const formClassStore = new FormClassStore(formSets);
+const formStore = new FilterFormStore(formSets);
 
 const TEST = (): JSX.Element => {
   return (
     <>
-      <FilterForm formClassStore={formClassStore} />
+      <FilterForm formStore={formStore} />
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px' }}>
         <Popconfirm
-          description={<FilterForm formClassStore={formClassStore} />}
+          description={<FilterForm formStore={formStore} />}
           icon={<FilterOutlined />}
           title={'Table Filter'}>
           <Button>Click ME</Button>

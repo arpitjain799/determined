@@ -7,7 +7,7 @@ import Input from 'components/kit/Input';
 import InputNumber from 'components/kit/InputNumber';
 
 import css from './FilterField.module.scss';
-import { FormClassStore } from './FilterFormStore';
+import { FilterFormStore } from './FilterFormStore';
 import {
   AvaliableOperators,
   ColumnType,
@@ -23,19 +23,18 @@ interface Props {
   field: FormField;
   parentId: string;
   conjunction: Conjunction;
-  formClassStore: FormClassStore;
+  formStore: FilterFormStore;
   level: number; // start from 0
 }
 
 const FilterField = ({
   field,
   conjunction,
-  formClassStore,
+  formStore,
   index,
   parentId,
   level,
 }: Props): JSX.Element => {
-  const avaliableOperators = AvaliableOperators[ColumnType[field.columnName]];
   const [, drag, preview] = useDrag<{ form: FormField; index: number }, unknown, unknown>(() => ({
     item: { form: field, index },
     type: FormType.Field,
@@ -73,8 +72,8 @@ const FilterField = ({
       const dragIndex = item.index;
       const hoverIndex = index;
       if (dragIndex !== hoverIndex && isOverCurrent && canDrop) {
-        formClassStore.removeChild(item.form.id);
-        formClassStore.addChild(parentId, item.form.type, hoverIndex, item.form);
+        formStore.removeChild(item.form.id);
+        formStore.addChild(parentId, item.form.type, hoverIndex, item.form);
         item.index = hoverIndex;
       }
     },
@@ -88,7 +87,7 @@ const FilterField = ({
           <Select
             value={conjunction}
             onChange={(value: string) => {
-              formClassStore.setFieldValue(parentId, 'conjunction', value);
+              formStore.setFieldValue(parentId, 'conjunction', value);
             }}>
             {Object.values(Conjunction).map((c) => (
               <Select.Option key={c} value={c}>
@@ -104,25 +103,26 @@ const FilterField = ({
           value={field.columnName}
           onChange={(value: string) => {
             const prevType = ColumnType[field.columnName];
-            formClassStore.setFieldValue(field.id, 'columnName', value);
+            formStore.setFieldValue(field.id, 'columnName', value);
             if (prevType !== ColumnType[field.columnName]) {
-              // change default operator every time columnName is changed
-              formClassStore.setFieldValue(field.id, 'operator', avaliableOperators[0]);
-              formClassStore.setFieldValue(field.id, 'value', null);
+              const defaultOperator = AvaliableOperators[ColumnType[field.columnName]][0];
+              formStore.setFieldValue(field.id, 'operator', defaultOperator);
+              formStore.setFieldValue(field.id, 'value', null);
             }
           }}>
-          <Select.Option value="id">id</Select.Option>
-          <Select.Option value="tags">tags</Select.Option>
-          <Select.Option value="state">state</Select.Option>
-          <Select.Option value="user">user</Select.Option>
+          {Object.keys(ColumnType).map((col) => (
+            <Select.Option key={col} value={col}>
+              {col}
+            </Select.Option>
+          ))}
         </Select>
         <Select
           style={{ width: '100%' }}
           value={field.operator}
           onChange={(value: Operator) => {
-            formClassStore.setFieldValue(field.id, 'operator', value);
+            formStore.setFieldValue(field.id, 'operator', value);
           }}>
-          {avaliableOperators.map((op) => (
+          {AvaliableOperators[ColumnType[field.columnName]].map((op) => (
             <Select.Option key={op} value={op}>
               {op}
             </Select.Option>
@@ -131,21 +131,28 @@ const FilterField = ({
         <>
           {ColumnType[field.columnName] === 'string' && (
             <Input
-              value={field.value?.toString()}
-              onChange={(e) => formClassStore.setFieldValue(field.id, 'value', e.target.value)}
+              disabled={field.operator === Operator.isEmpty || field.operator === Operator.notEmpty}
+              value={
+                field.operator === Operator.isEmpty || field.operator === Operator.notEmpty
+                  ? undefined
+                  : field.value?.toString()
+              }
+              onChange={(e) => formStore.setFieldValue(field.id, 'value', e.target.value)}
             />
           )}
           {ColumnType[field.columnName] === 'number' && (
             <InputNumber
-              value={Number(field.value ?? 0)}
-              onChange={(val) => formClassStore.setFieldValue(field.id, 'value', Number(val))}
+              value={field.value != null ? Number(field.value) : undefined}
+              onChange={(val) =>
+                formStore.setFieldValue(field.id, 'value', val?.toString() ?? null)
+              }
             />
           )}
         </>
         <Button
           icon={<DeleteOutlined />}
           type="text"
-          onClick={() => formClassStore.removeChild(field.id)}
+          onClick={() => formStore.removeChild(field.id)}
         />
         <Button type="text">
           <div ref={drag}>

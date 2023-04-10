@@ -7,7 +7,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import Button from 'components/kit/Button';
 
 import FilterField from './FilterField';
-import { FormClassStore } from './FilterFormStore';
+import { FilterFormStore } from './FilterFormStore';
 import css from './FilterGroup.module.scss';
 import { Conjunction, FormField, FormGroup, FormType } from './type';
 
@@ -17,7 +17,7 @@ interface Props {
   group: FormGroup;
   parentId: string;
   level: number; // start from 0
-  formClassStore: FormClassStore;
+  formStore: FilterFormStore;
 }
 
 const FilterGroup = ({
@@ -25,7 +25,7 @@ const FilterGroup = ({
   conjunction,
   group,
   level,
-  formClassStore,
+  formStore,
   parentId,
 }: Props): JSX.Element => {
   const [, drag, preview] = useDrag<{ form: FormGroup; index: number }, unknown, unknown>(() => ({
@@ -66,12 +66,22 @@ const FilterGroup = ({
       canDrop: monitor.canDrop(),
       isOverCurrent: monitor.isOver({ shallow: true }),
     }),
-    hover(item) {
+    hover(item, monitor) {
       const dragIndex = item.index;
       const hoverIndex = index;
-      if (dragIndex !== hoverIndex && isOverCurrent && canDrop) {
-        formClassStore.removeChild(item.form.id);
-        formClassStore.addChild(group.id, item.form.type, hoverIndex, item.form);
+      const diffOffset = monitor.getDifferenceFromInitialOffset();
+
+      if (isOverCurrent && canDrop) {
+        formStore.removeChild(item.form.id);
+        const insertIndex = (() => {
+          if (dragIndex !== hoverIndex) {
+            return hoverIndex;
+          } else {
+            // if drag on level=0 group, insert on the top if diffOffset is lower than original position
+            return (diffOffset?.y ?? 0) > 0 ? group.children.length : 0;
+          }
+        })();
+        formStore.addChild(group.id, item.form.type, insertIndex, item.form);
         item.index = hoverIndex;
       }
     },
@@ -80,9 +90,9 @@ const FilterGroup = ({
   const menuItems: DropDownProps['menu'] = useMemo(() => {
     const onItemClick: MenuProps['onClick'] = (e) => {
       if (e.key === FormType.Field) {
-        formClassStore.addChild(group.id, FormType.Field, group.children.length);
+        formStore.addChild(group.id, FormType.Field, group.children.length);
       } else if (e.key === FormType.Group) {
-        formClassStore.addChild(group.id, FormType.Group, group.children.length);
+        formStore.addChild(group.id, FormType.Group, group.children.length);
       }
     };
 
@@ -96,7 +106,7 @@ const FilterGroup = ({
       },
     ];
     return { items: items, onClick: onItemClick };
-  }, [formClassStore, group.children.length, group.id, level]);
+  }, [formStore, group.children.length, group.id, level]);
 
   return (
     <div className={`${css.base} ${level === 0 ? css.baseRoot : ''}`} ref={(node) => drop(node)}>
@@ -107,7 +117,7 @@ const FilterGroup = ({
             <Select
               value={conjunction}
               onChange={(value: string) => {
-                formClassStore.setFieldValue(parentId, 'conjunction', value);
+                formStore.setFieldValue(parentId, 'conjunction', value);
               }}>
               {Object.values(Conjunction).map((c) => (
                 <Select.Option key={c} value={c}>
@@ -135,7 +145,7 @@ const FilterGroup = ({
             <Button
               icon={<DeleteOutlined />}
               type="text"
-              onClick={() => formClassStore.removeChild(group.id)}
+              onClick={() => formStore.removeChild(group.id)}
             />
             {level > 0 && (
               <div ref={drag}>
@@ -150,7 +160,7 @@ const FilterGroup = ({
               return (
                 <FilterGroup
                   conjunction={group.conjunction}
-                  formClassStore={formClassStore}
+                  formStore={formStore}
                   group={child}
                   index={i}
                   key={child.id}
@@ -163,7 +173,7 @@ const FilterGroup = ({
                 <FilterField
                   conjunction={group.conjunction}
                   field={child}
-                  formClassStore={formClassStore}
+                  formStore={formStore}
                   index={i}
                   key={child.id}
                   level={level + 1}
@@ -176,15 +186,11 @@ const FilterGroup = ({
         {level === 0 && (
           <div>
             <Button
-              onClick={() =>
-                formClassStore.addChild(group.id, FormType.Field, group.children.length)
-              }>
+              onClick={() => formStore.addChild(group.id, FormType.Field, group.children.length)}>
               + Add condition field
             </Button>
             <Button
-              onClick={() =>
-                formClassStore.addChild(group.id, FormType.Group, group.children.length)
-              }>
+              onClick={() => formStore.addChild(group.id, FormType.Group, group.children.length)}>
               + Add condition group
             </Button>
           </div>
