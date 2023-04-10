@@ -1,6 +1,14 @@
 import { Observable, observable } from 'micro-observables';
 
-import { Conjunction, FilterFormSet, FormField, FormGroup, FormType, Operator } from './type';
+import {
+  Conjunction,
+  FilterFormSet,
+  FormField,
+  FormGroup,
+  FormType,
+  Operator,
+  OperatorMap,
+} from './type';
 
 const INIT_FORMSET: FilterFormSet = {
   filterGroup: { children: [], conjunction: Conjunction.and, id: 'ROOT', type: FormType.Group }, // default
@@ -38,6 +46,25 @@ export class FormClassStore {
     return this.#formset.readOnly();
   }
 
+  public get query(): string {
+    const formGroup: Readonly<FormGroup> = this.#formset.get().filterGroup;
+
+    const recur = (form: FormGroup | FormField) => {
+      if (form.type === 'field') {
+        return `${form.columnName} ${OperatorMap[form.operator]} ${form.value}`;
+      }
+      const arr: string[] = [];
+      if (form.type === 'group') {
+        for (const child of form.children) {
+          const ans = recur(child);
+          arr.push(ans);
+        }
+      }
+      return `(${arr.join(` ${form.conjunction} `.toUpperCase())})`;
+    };
+    return recur(formGroup);
+  }
+
   public setFieldValue(
     id: string,
     keyType:
@@ -45,7 +72,7 @@ export class FormClassStore {
       | keyof Pick<FormGroup, 'conjunction'>,
     value: string | string[] | number | number[],
   ): void {
-    const set = this.#formset.get().filterGroup;
+    const filterGroup = this.#formset.get().filterGroup;
     const recur = (form: FormGroup | FormField): FormGroup | FormField | undefined => {
       if (form.id === id) {
         return form;
@@ -65,7 +92,7 @@ export class FormClassStore {
       return undefined;
     };
 
-    const ans = recur(set);
+    const ans = recur(filterGroup);
 
     if (ans) {
       if (ans.type === FormType.Field) {
@@ -81,7 +108,7 @@ export class FormClassStore {
           ans.conjunction = value;
         }
       }
-      this.#formset.set({ filterGroup: set });
+      this.#formset.set({ filterGroup });
     }
   }
 
@@ -91,7 +118,7 @@ export class FormClassStore {
     index: number,
     obj?: Readonly<FormGroup | FormField>,
   ): void {
-    const set = this.#formset.get().filterGroup;
+    const filterGroup = this.#formset.get().filterGroup;
     const recur = (form: FormGroup | FormField): void => {
       if (form.id === id && form.type === FormType.Group) {
         if (obj) {
@@ -109,14 +136,14 @@ export class FormClassStore {
       }
     };
 
-    recur(set);
-    this.#formset.set({ filterGroup: set });
+    recur(filterGroup);
+    this.#formset.set({ filterGroup });
   }
 
   public removeChild(id: string): void {
-    const set = this.#formset.get().filterGroup;
+    const filterGroup = this.#formset.get().filterGroup;
 
-    if (set.id === id) {
+    if (filterGroup.id === id) {
       this.#formset.set(structuredClone(INIT_FORMSET));
       return;
     }
@@ -129,8 +156,8 @@ export class FormClassStore {
         }
       }
     };
-    recur(set);
-    this.#formset.set({ filterGroup: set });
+    recur(filterGroup);
+    this.#formset.set({ filterGroup });
   }
 }
 

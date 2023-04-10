@@ -19,6 +19,7 @@ const FilterForm = ({ formClassStore }: Props): JSX.Element => {
         level={0}
         parentId={data.filterGroup.id}
       />
+      <div>{formClassStore.query}</div>
     </div>
   );
 };
