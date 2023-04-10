@@ -1,37 +1,51 @@
 import { Observable, observable } from 'micro-observables';
 
 import {
+  ColumnType,
   Conjunction,
   FilterFormSet,
   FormField,
+  FormFieldValue,
   FormGroup,
   FormType,
   Operator,
-  OperatorMap,
 } from './type';
 
 const INIT_FORMSET: FilterFormSet = {
-  filterGroup: { children: [], conjunction: Conjunction.and, id: 'ROOT', type: FormType.Group }, // default
+  filterGroup: { children: [], conjunction: Conjunction.And, id: 'ROOT', type: FormType.Group }, // default
 };
 
-const getInitGroup = (): FormGroup => {
-  return {
-    children: [],
-    conjunction: Conjunction.and,
-    id: crypto.randomUUID(),
-    type: FormType.Group,
-  };
-};
+const getInitGroup = (): FormGroup => ({
+  children: [],
+  conjunction: Conjunction.And,
+  id: crypto.randomUUID(),
+  type: FormType.Group,
+});
 
-const getInitField = (): FormField => {
-  return {
-    columnName: 'id',
-    id: crypto.randomUUID(),
-    operator: 'contains',
-    type: FormType.Field,
-    value: undefined,
-  };
-};
+const getInitField = (): FormField => ({
+  columnName: 'id',
+  id: crypto.randomUUID(),
+  operator: 'contains',
+  type: FormType.Field,
+  value: null,
+});
+
+const OperatorQueryMap: Record<Operator, (colName: string, val: FormFieldValue) => string> = {
+  '!=': (colName: string, val: FormFieldValue) => `-${colName}:${val}`,
+  '<': (colName: string, val: FormFieldValue) => `${colName}<${val}`,
+  '<=': (colName: string, val: FormFieldValue) => `-${colName}<=${val}`,
+  '=': (colName: string, val: FormFieldValue) => `${colName}:${val}`,
+  '>': (colName: string, val: FormFieldValue) => `${colName}>${val}`,
+  '>=': (colName: string, val: FormFieldValue) => `${colName}>=${val}`,
+  'contains': (colName: string, val: FormFieldValue) => `${colName}~${val}`,
+  'in': (colName: string, val: FormFieldValue) => `${colName}????${val}`, // TODO: no spec for list yet
+  'is': (colName: string, val: FormFieldValue) => `${colName}:${val}`,
+  'is empty': (colName: string) => `${colName}:null`,
+  'is not': (colName: string, val: FormFieldValue) => `-${colName}: ${val}`,
+  'not contains': (colName: string, val: FormFieldValue) => `-${colName}~${val}`,
+  'not empty': (colName: string) => `-${colName}:null`,
+  'not in': (colName: string, val: FormFieldValue) => `${colName}?????${val}`, // TODO: no spec for list yet
+} as const;
 
 export class FormClassStore {
   #formset = observable<FilterFormSet>(INIT_FORMSET);
@@ -51,7 +65,11 @@ export class FormClassStore {
 
     const recur = (form: FormGroup | FormField) => {
       if (form.type === 'field') {
-        return `${form.columnName} ${OperatorMap[form.operator]} ${form.value}`;
+        const func = OperatorQueryMap[form.operator];
+        const type = ColumnType[form.columnName];
+        const value =
+          type === 'string' ? `"${form.value?.toString().replaceAll('"', '\\"')}"` : form.value;
+        return func(form.columnName, value);
       }
       const arr: string[] = [];
       if (form.type === 'group') {
@@ -70,7 +88,7 @@ export class FormClassStore {
     keyType:
       | keyof Pick<FormField, 'columnName' | 'operator' | 'value'>
       | keyof Pick<FormGroup, 'conjunction'>,
-    value: string | string[] | number | number[],
+    value: FormFieldValue,
   ): void {
     const filterGroup = this.#formset.get().filterGroup;
     const recur = (form: FormGroup | FormField): FormGroup | FormField | undefined => {
@@ -94,6 +112,7 @@ export class FormClassStore {
 
     const ans = recur(filterGroup);
 
+    // TOOD: use generic or something to simplify this logic
     if (ans) {
       if (ans.type === FormType.Field) {
         if (keyType === 'columnName' && typeof value === 'string') {
@@ -104,7 +123,7 @@ export class FormClassStore {
           ans.value = value;
         }
       } else if (ans.type === FormType.Group) {
-        if (keyType === 'conjunction' && (value === Conjunction.and || value === Conjunction.or)) {
+        if (keyType === 'conjunction' && (value === Conjunction.And || value === Conjunction.Or)) {
           ans.conjunction = value;
         }
       }
@@ -176,14 +195,14 @@ export const formSets: FilterFormSet = {
           {
             columnName: 'user',
             id: 'stringdsdff123',
-            operator: 'eq',
+            operator: '=',
             type: FormType.Field,
             value: 1,
           },
           {
             columnName: 'state',
             id: 'stringdsdff3',
-            operator: 'notEmpty',
+            operator: '!=',
             type: FormType.Field,
             value: 'test',
           },
@@ -202,12 +221,12 @@ export const formSets: FilterFormSet = {
       {
         columnName: 'id',
         id: 'gsstringdfs123',
-        operator: 'greaterEq',
+        operator: '>=',
         type: FormType.Field,
-        value: 'test',
+        value: 1,
       },
     ],
-    conjunction: Conjunction.and,
+    conjunction: Conjunction.And,
     id: 'ROOT',
     type: FormType.Group,
   },

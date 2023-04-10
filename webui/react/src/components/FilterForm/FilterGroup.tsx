@@ -122,7 +122,7 @@ const FilterGroup = ({
       <div className={css.groupCard} ref={preview}>
         <div className={css.header}>
           <div className={css.headerCaption}>
-            {group.conjunction === Conjunction.and ? (
+            {group.conjunction === Conjunction.And ? (
               <div>All of the following coditions are true</div>
             ) : (
               <div>Some of the following coditions are true</div>

@@ -8,7 +8,15 @@ import InputNumber from 'components/kit/InputNumber';
 
 import css from './FilterField.module.scss';
 import { FormClassStore } from './FilterFormStore';
-import { Conjunction, FormField, FormGroup, FormType, Operator, OperatorMap } from './type';
+import {
+  AvaliableOperators,
+  ColumnType,
+  Conjunction,
+  FormField,
+  FormGroup,
+  FormType,
+  Operator,
+} from './type';
 
 interface Props {
   index: number; // start from 0
@@ -27,6 +35,7 @@ const FilterField = ({
   parentId,
   level,
 }: Props): JSX.Element => {
+  const avaliableOperators = AvaliableOperators[ColumnType[field.columnName]];
   const [, drag, preview] = useDrag<{ form: FormField; index: number }, unknown, unknown>(() => ({
     item: { form: field, index },
     type: FormType.Field,
@@ -94,7 +103,13 @@ const FilterField = ({
         <Select
           value={field.columnName}
           onChange={(value: string) => {
+            const prevType = ColumnType[field.columnName];
             formClassStore.setFieldValue(field.id, 'columnName', value);
+            if (prevType !== ColumnType[field.columnName]) {
+              // change default operator every time columnName is changed
+              formClassStore.setFieldValue(field.id, 'operator', avaliableOperators[0]);
+              formClassStore.setFieldValue(field.id, 'value', null);
+            }
           }}>
           <Select.Option value="id">id</Select.Option>
           <Select.Option value="tags">tags</Select.Option>
@@ -107,17 +122,26 @@ const FilterField = ({
           onChange={(value: Operator) => {
             formClassStore.setFieldValue(field.id, 'operator', value);
           }}>
-          {Object.entries(OperatorMap).map((op) => (
-            <Select.Option key={op[0]} value={op[0]}>
-              {op[1]}
+          {avaliableOperators.map((op) => (
+            <Select.Option key={op} value={op}>
+              {op}
             </Select.Option>
           ))}
         </Select>
-        {['string'].includes(field.columnName) ? (
-          <Input size="small" value={field.value?.toString()} />
-        ) : (
-          <InputNumber value={field.value as number} />
-        )}
+        <>
+          {ColumnType[field.columnName] === 'string' && (
+            <Input
+              value={field.value?.toString()}
+              onChange={(e) => formClassStore.setFieldValue(field.id, 'value', e.target.value)}
+            />
+          )}
+          {ColumnType[field.columnName] === 'number' && (
+            <InputNumber
+              value={Number(field.value ?? 0)}
+              onChange={(val) => formClassStore.setFieldValue(field.id, 'value', Number(val))}
+            />
+          )}
+        </>
         <Button
           icon={<DeleteOutlined />}
           type="text"
