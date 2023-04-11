@@ -152,7 +152,6 @@ const CodeEditor: React.FC<Props> = ({ files, onSelectFile, readonly, selectedFi
     try {
       file = await fileInfo.get?.(String(fileInfo.key));
     } catch (error) {
-      console.error(error);
       handleError(error, {
         publicMessage: 'Failed to load selected file.',
         publicSubject: 'Unable to fetch the selected file.',
@@ -177,14 +176,14 @@ const CodeEditor: React.FC<Props> = ({ files, onSelectFile, readonly, selectedFi
   }, []);
 
   const treeData = useMemo(() => {
-    if (selectedFilePath) {
-      const matchTopFileOrFolder = files.find((f) => f.key === selectedFilePath.split('/')[0]);
+    if (selectedFilePath && activeFile?.key !== selectedFilePath) {
+      const matchTopFileOrFolder = files.find((f) => f.key === selectedFilePath);
       if (matchTopFileOrFolder) {
         fetchFile(matchTopFileOrFolder);
       }
     }
     return files.sort(sortTree);
-  }, [files, fetchFile, selectedFilePath]);
+  }, [files, selectedFilePath, activeFile?.key, fetchFile]);
 
   const handleSelectFile = useCallback(
     (_: React.Key[], info: { node: TreeNode }) => {
