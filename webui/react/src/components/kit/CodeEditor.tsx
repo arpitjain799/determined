@@ -1,7 +1,5 @@
 import { DownloadOutlined, FileOutlined } from '@ant-design/icons';
 import { Tree } from 'antd';
-import { DataNode } from 'antd/lib/tree';
-import yaml from 'js-yaml';
 import React, {
   lazy,
   Suspense,
@@ -16,17 +14,15 @@ import React, {
 import Tooltip from 'components/kit/Tooltip';
 import MonacoEditor from 'components/MonacoEditor';
 import Section from 'components/Section';
-import { handlePath, paths } from 'routes/utils';
-import { getExperimentFileFromTree, getExperimentFileTree } from 'services/api';
-import { V1FileNode } from 'services/api-ts-sdk';
-import Icon from 'shared/components/Icon';
+import { handlePath } from 'routes/utils';
 import Message, { MessageType } from 'shared/components/Message';
 import Spinner from 'shared/components/Spinner';
-import { RawJson, ValueOf } from 'shared/types';
+import { ValueOf } from 'shared/types';
 import { ErrorType } from 'shared/utils/error';
 import { AnyMouseEvent } from 'shared/utils/routes';
+import { TreeNode } from 'types';
 import handleError from 'utils/error';
-import { Loadable } from 'utils/loadable';
+import { Loadable, Loaded, NotLoaded } from 'utils/loadable';
 
 const JupyterRenderer = lazy(() => import('./CodeEditor/IpynbRenderer'));
 
@@ -36,29 +32,12 @@ import css from './CodeEditor/CodeEditor.module.scss';
 
 import './CodeEditor/index.scss';
 
-type FileInfo = {
-  content: Loadable<string>;
-  name: string;
-};
-
 export type Props = {
-  files: FileInfo[];
+  files: TreeNode[];
   onSelectFile?: (arg0: string) => void;
   readonly?: boolean;
   selectedFilePath?: string;
 };
-
-interface TreeNode extends DataNode {
-  /**
-   * DataNode is the interface antd works with. DateNode properties we are interested in:
-   *
-   * key: we use V1FileNode.path
-   * title: name of node
-   * icon: custom Icon component
-   */
-  children?: TreeNode[];
-  text?: string;
-}
 
 const DEFAULT_DOWNLOAD_INFO = {
   fileName: '',
@@ -73,6 +52,11 @@ const sortTree = (a: TreeNode, b: TreeNode) => {
   // and finally alphabetically.
   const titleA = String(a.title);
   const titleB = String(b.title);
+
+  if (isConfig(a.key) && !isConfig(b.key)) return -1;
+  if (!isConfig(a.key) && isConfig(b.key)) return 1;
+  // submitted before runtime for whatever reason
+  if (isConfig(a.key) && isConfig(b.key)) return a.key < b.key ? 1 : -1;
 
   if (!a.isLeaf && b.isLeaf) return -1;
 
@@ -93,24 +77,6 @@ const sortTree = (a: TreeNode, b: TreeNode) => {
 
   return extensionA.localeCompare(extensionB) - extensionB.localeCompare(extensionB);
 };
-
-const convertV1FileNodeToTreeNode = (node: V1FileNode): TreeNode => ({
-  children: node.files?.map((n) => convertV1FileNodeToTreeNode(n)) ?? [],
-  isLeaf: !node.isDir,
-  key: node.path ?? '',
-  title: node.name,
-});
-
-const convertFileInfoToTreeNode = (file: FileInfo): TreeNode => ({
-  children: [],
-  isLeaf: true,
-  key: file.name ?? '',
-  text: Loadable.match(file.content, {
-    Loaded: (content) => content,
-    NotLoaded: () => '',
-  }),
-  title: file.name,
-});
 
 const PageError = {
   Decode: 'Could not decode file.',
@@ -133,8 +99,6 @@ const descForConfig = {
   [Config.Runtime]: 'after merge with defaults and templates',
 };
 
-const configIcon = <Icon name="settings" />;
-
 const isConfig = (key: unknown): key is Config =>
   key === Config.Submitted || key === Config.Runtime;
 
@@ -149,84 +113,24 @@ const isConfig = (key: unknown): key is Config =>
  *
  * onSelectFile: called with filename when user changes files in the tree;
  *
- * submittedConfig: the experiments.original_config property
+ * readonly: prevent user from making changes to code files;
  *
- * runtimeConfig: the config corresponding to the merged runtime config.
+ * selectedFilePath: gives path to the file to set as activeFile;
  */
 
-const CodeEditor: React.FC<Props> = ({
-  files,
-  onSelectFile,
-  readonly,
-  selectedFilePath,
-}) => {
-  // const firstConfig = useMemo(
-  //   () => (_submittedConfig ? Config.Submitted : Config.Runtime),
-  //   [_submittedConfig],
-  // );
-  const [fileViewerInfo, setFileViewerInfo] = useState<{ filePath: string; fileText?: string }>({
-    filePath: selectedFilePath || '',
-  });
-
-  // const submittedConfig = useMemo(() => {
-  //   if (!_submittedConfig) return;
-  //
-  //   const { hyperparameters, ...restConfig } = yaml.load(_submittedConfig) as RawJson;
-  //
-  //   // don't ask me why this works.. it gets rid of the JSON though
-  //   return yaml.dump({ ...restConfig, hyperparameters });
-  // }, [_submittedConfig]);
-
-  // const runtimeConfig: string = useMemo(() => {
-  //   /**
-  //    * strip registry_auth from config for display
-  //    * as well as workspace/project names
-  //    */
-  //
-  //   if (_runtimeConfig) {
-  //     const {
-  //       environment: { registry_auth, ...restEnvironment },
-  //       workspace,
-  //       project,
-  //       ...restConfig
-  //     } = _runtimeConfig;
-  //     return yaml.dump({ environment: restEnvironment, ...restConfig });
-  //   }
-  //   return '';
-  // }, [_runtimeConfig]);
-
+const CodeEditor: React.FC<Props> = ({ files, onSelectFile, readonly, selectedFilePath }) => {
   const [pageError, setPageError] = useState<PageError>(PageError.None);
 
-  const [treeData, setTreeData] = useState<TreeNode[]>([]);
-  const [activeFile, setActiveFile] = useState<TreeNode | null>(
-    files.length === 1 ? convertFileInfoToTreeNode(files[0]) : null,
-  );
-  const [isFetchingFile, setIsFetchingFile] = useState(false);
-  const [isFetchingTree, setIsFetchingTree] = useState(false);
+  const [activeFile, setActiveFile] = useState<TreeNode | null>(files.length > 0 ? files[0] : null);
   const [downloadInfo, setDownloadInfo] = useState(DEFAULT_DOWNLOAD_INFO);
   const configDownloadButton = useRef<HTMLAnchorElement>(null);
   const timeout = useRef<NodeJS.Timeout>();
-  const [editorMode, setEditorMode] = useState<'monaco' | 'ipynb'>('monaco');
-  const viewMode = files.length === 1 ? 'editor' : 'split';
 
-  // const handleSelectConfig = useCallback(
-  //   (c: Config) => {
-  //     if (files.length) return;
-  //     const configText = c === Config.Submitted ? submittedConfig : runtimeConfig;
-  //
-  //     if (configText) {
-  //       setPageError(PageError.None);
-  //     } else setPageError(PageError.Fetch);
-  //
-  //     setActiveFile({
-  //       icon: configIcon,
-  //       key: c,
-  //       text: configText,
-  //       title: c,
-  //     });
-  //   },
-  //   [files, submittedConfig, runtimeConfig],
-  // );
+  const viewMode = useMemo(() => (files.length === 1 ? 'editor' : 'split'), [files.length]);
+  const editorMode = useMemo(() => {
+    const isIpybnFile = /\.ipynb$/i.test(String(activeFile?.key || ''));
+    return isIpybnFile ? 'ipynb' : 'monaco';
+  }, [activeFile]);
 
   const downloadHandler = useCallback(() => {
     timeout.current = setTimeout(() => {
@@ -234,84 +138,53 @@ const CodeEditor: React.FC<Props> = ({
     }, 2000);
   }, [downloadInfo.url]);
 
-  const fetchFileTree = useCallback(async () => {
-    if (files && files.length > 1) {
-      setTreeData(files.map(convertFileInfoToTreeNode).sort(sortTree));
+  const fetchFile = useCallback(async (fileInfo: TreeNode) => {
+    if (!fileInfo) return;
+    setPageError(PageError.None);
+
+    if (isConfig(fileInfo.key) || fileInfo.content !== NotLoaded) {
+      setActiveFile(fileInfo);
+      return;
     }
-    return;
-    // setIsFetchingTree(true);
-    // try {
-    //   const fileTree = await getExperimentFileTree({ experimentId });
-    //   setIsFetchingTree(false);
-    //
-    //   const tree = fileTree
-    //     .map<TreeNode>((node) => convertV1FileNodeToTreeNode(node))
-    //     .sort(sortTree);
-    //
-    //   if (runtimeConfig)
-    //     tree.unshift({
-    //       icon: configIcon,
-    //       isLeaf: true,
-    //       key: Config.Runtime,
-    //       title: Config.Runtime,
-    //     });
-    //
-    //   if (submittedConfig)
-    //     tree.unshift({
-    //       icon: configIcon,
-    //       isLeaf: true,
-    //       key: Config.Submitted,
-    //       title: Config.Submitted,
-    //     });
-    //
-    //   setTreeData(tree);
-    // } catch (error) {
-    //   setIsFetchingTree(false);
-    //   handleError(error, {
-    //     publicMessage: 'Failed to load file tree.',
-    //     publicSubject: 'Unable to fetch the model file tree.',
-    //     silent: false,
-    //     type: ErrorType.Api,
-    //   });
-    // }
-  }, [files]);
 
-  const fetchFile = useCallback(
-    async (path: string, title: string) => {
-      if (!files.length) return;
-      setPageError(PageError.None);
-
-      const file = '';
-      try {
-        // file = await getExperimentFileFromTree({ experimentId, path });
-      } catch (error) {
-        handleError(error, {
-          publicMessage: 'Failed to load selected file.',
-          publicSubject: 'Unable to fetch the selected file.',
-          silent: false,
-          type: ErrorType.Api,
-        });
-        setPageError(PageError.Fetch);
-      } finally {
-        setIsFetchingFile(false);
-      }
-
-      let text = '';
-      try {
-        text = decodeURIComponent(escape(window.atob(file)));
-
-        if (!text) setPageError(PageError.Empty); // Emmits a "Empty file" error message
-      } catch {
-        setPageError(PageError.Decode);
-      }
-      setActiveFile({
-        key: path,
-        text,
-        title,
+    let file,
+      content: Loadable<string> = NotLoaded;
+    try {
+      file = await fileInfo.get?.(String(fileInfo.key));
+    } catch (error) {
+      console.error(error);
+      handleError(error, {
+        publicMessage: 'Failed to load selected file.',
+        publicSubject: 'Unable to fetch the selected file.',
+        silent: false,
+        type: ErrorType.Api,
       });
-    },
-    [files],
-  );
+      setPageError(PageError.Fetch);
+    }
+
+    try {
+      const text = decodeURIComponent(escape(window.atob(file || '')));
+
+      if (!text) setPageError(PageError.Empty); // Emmits a "Empty file" error message
+      content = Loaded(text);
+    } catch {
+      setPageError(PageError.Decode);
+    }
+    setActiveFile({
+      ...fileInfo,
+      content,
+    });
+  }, []);
+
+  const treeData = useMemo(() => {
+    if (selectedFilePath) {
+      const matchTopFileOrFolder = files.find((f) => f.key === selectedFilePath.split('/')[0]);
+      if (matchTopFileOrFolder) {
+        fetchFile(matchTopFileOrFolder);
+      }
+    }
+    return files.sort(sortTree);
+  }, [files, fetchFile, selectedFilePath]);
 
   const handleSelectFile = useCallback(
     (_: React.Key[], info: { node: TreeNode }) => {
@@ -319,16 +192,6 @@ const CodeEditor: React.FC<Props> = ({
 
       if (selectedKey === activeFile?.key) {
         // already selected
-        return;
-      }
-
-      if (info.node.text) {
-        setFileViewerInfo({ filePath: String(info.node.key), fileText: info.node.text });
-        return;
-      }
-
-      if (isConfig(selectedKey)) {
-        setFileViewerInfo({ filePath: String(info.node.key) });
         return;
       }
 
@@ -344,10 +207,11 @@ const CodeEditor: React.FC<Props> = ({
       }
 
       if (targetNode.isLeaf) {
-        setFileViewerInfo({ filePath: String(info.node.key) });
+        onSelectFile?.(String(targetNode.key));
+        fetchFile(targetNode);
       }
     },
-    [activeFile?.key, treeData],
+    [activeFile?.key, fetchFile, treeData, onSelectFile],
   );
 
   const getSyntaxHighlight = useCallback(() => {
@@ -363,88 +227,26 @@ const CodeEditor: React.FC<Props> = ({
       if (!activeFile) return;
 
       const filePath = String(activeFile?.key);
-      // if (isConfig(filePath)) {
-      //   // const isRuntimeConf = filePath === Config.Runtime;
-      //   // const url = isRuntimeConf
-      //     // ? URL.createObjectURL(new Blob([runtimeConfig]))
-      //     // : URL.createObjectURL(new Blob([submittedConfig as string]));
-      //
-      //   setDownloadInfo({
-      //     fileName: isRuntimeConf
-      //       ? `${experimentId}_submitted_configuration.yaml`
-      //       : `${experimentId}_runtime_configuration.yaml`,
-      //     url,
-      //   });
-      // } else
-      if (activeFile.key && activeFile.text) {
-        const url = URL.createObjectURL(new Blob([activeFile.text]));
+      if (isConfig(filePath) && activeFile.content !== NotLoaded) {
+        const url = URL.createObjectURL(
+          Loadable.match(activeFile.content, {
+            Loaded: (content) => new Blob([content]),
+            NotLoaded: () => new Blob(),
+          }),
+        );
         setDownloadInfo({
-          fileName: String(activeFile.key),
+          fileName: String(activeFile.download || activeFile.key),
           url,
         });
+      } else if (activeFile.key) {
+        handlePath(e, {
+          external: true,
+          path: activeFile.download,
+        });
       }
-      // else if (experimentId) {
-      //   handlePath(e, {
-      //     external: true,
-      //     path: paths.experimentFileFromTree(experimentId, String(activeFile?.key)),
-      //   });
-      // }
     },
     [activeFile],
   );
-
-  // map the file tree
-  useEffect(() => {
-    fetchFileTree();
-  }, [fetchFileTree]);
-
-  // Set the selected node based on the active settings
-  useEffect(() => {
-    if (!fileViewerInfo.filePath) return;
-
-    if (activeFile?.key !== fileViewerInfo.filePath) {
-      onSelectFile?.(fileViewerInfo.filePath);
-
-      if (isConfig(fileViewerInfo.filePath)) {
-        // handleSelectConfig(fileViewerInfo.filePath);
-      } else {
-        const path = fileViewerInfo.filePath.split('/');
-        const fileName = path[path.length - 1];
-
-        if (files.length) {
-          setActiveFile({
-            key: path[path.length - 1],
-            text: fileViewerInfo.fileText,
-            title: path,
-          } as TreeNode);
-        } else {
-          setIsFetchingFile(true);
-          fetchFile(fileViewerInfo.filePath, fileName);
-        }
-      }
-    }
-  }, [
-    treeData,
-    files.length,
-    fileViewerInfo,
-    activeFile,
-    fetchFile,
-    // handleSelectConfig,
-    onSelectFile,
-  ]);
-
-  // Set the code renderer to ipynb if needed
-  useEffect(() => {
-    const hasActiveFile = activeFile?.text;
-    const isSameFile = activeFile?.key === fileViewerInfo.filePath;
-    const isIpybnFile = /\.ipynb$/i.test(fileViewerInfo.filePath);
-
-    if (hasActiveFile && isSameFile && isIpybnFile) {
-      setEditorMode('ipynb');
-    } else {
-      setEditorMode('monaco');
-    }
-  }, [fileViewerInfo.filePath, activeFile]);
 
   useLayoutEffect(() => {
     if (configDownloadButton.current && downloadInfo.url && downloadInfo.fileName)
@@ -460,28 +262,21 @@ const CodeEditor: React.FC<Props> = ({
 
   const classes = [
     css.codeEditorBase,
-    pageError || isFetchingFile ? css.noEditor : '',
+    pageError ? css.noEditor : '',
     viewMode === 'editor' ? css.editorMode : '',
   ];
 
   return (
     <div className={classes.join(' ')}>
       <div className={viewMode === 'editor' ? css.hideElement : undefined} id="file-tree">
-        <Spinner spinning={isFetchingTree}>
-          <DirectoryTree
-            className={css.fileTree}
-            data-testid="fileTree"
-            defaultExpandAll
-            defaultSelectedKeys={
-              viewMode
-                ? // this is to ensure that, at least, the most parent node gets highlighted...
-                  [fileViewerInfo.filePath.split('/')[0] ?? ''] //firstConfig]
-                : undefined
-            }
-            treeData={treeData}
-            onSelect={handleSelectFile}
-          />
-        </Spinner>
+        <DirectoryTree
+          className={css.fileTree}
+          data-testid="fileTree"
+          defaultExpandAll
+          defaultSelectedKeys={[selectedFilePath ? selectedFilePath.split('/')[0] : files[0]?.key]}
+          treeData={treeData}
+          onSelect={handleSelectFile}
+        />
       </div>
       {!!activeFile?.key && (
         <div className={css.fileDir}>
@@ -528,7 +323,7 @@ const CodeEditor: React.FC<Props> = ({
         bodyScroll
         className={pageError ? css.pageError : css.editor}
         maxHeight>
-        <Spinner spinning={isFetchingFile}>
+        <Spinner spinning={activeFile?.content === NotLoaded}>
           {pageError ? (
             <Message
               style={{
@@ -538,7 +333,7 @@ const CodeEditor: React.FC<Props> = ({
               title={pageError}
               type={MessageType.Alert}
             />
-          ) : !isFetchingFile && !activeFile?.text ? (
+          ) : !activeFile ? (
             <h5>Please, choose a file to preview.</h5>
           ) : editorMode === 'monaco' ? (
             <MonacoEditor
@@ -546,7 +341,7 @@ const CodeEditor: React.FC<Props> = ({
               language={getSyntaxHighlight()}
               options={{
                 minimap: {
-                  enabled: ['split', 'editor'].includes(viewMode) && !!activeFile?.text?.length,
+                  enabled: ['split', 'editor'].includes(viewMode) && !!activeFile?.content,
                   showSlider: 'mouseover',
                   size: 'fit',
                 },
@@ -554,11 +349,19 @@ const CodeEditor: React.FC<Props> = ({
                 readOnly: readonly,
                 showFoldingControls: 'always',
               }}
-              value={activeFile?.text}
+              value={Loadable.match(activeFile.content, {
+                Loaded: (code) => code,
+                NotLoaded: () => '',
+              })}
             />
           ) : (
             <Suspense fallback={<Spinner tip="Loading ipynb viewer..." />}>
-              <JupyterRenderer file={activeFile?.text || ''} />
+              <JupyterRenderer
+                file={Loadable.match(activeFile.content, {
+                  Loaded: (code) => code,
+                  NotLoaded: () => '',
+                })}
+              />
             </Suspense>
           )}
         </Spinner>
