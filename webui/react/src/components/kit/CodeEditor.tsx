@@ -262,6 +262,7 @@ const CodeEditor: React.FC<Props> = ({ files, onSelectFile, readonly, selectedFi
   }, []);
 
   const classes = [
+    css.fileTree,
     css.codeEditorBase,
     pageError ? css.noEditor : '',
     viewMode === 'editor' ? css.editorMode : '',
@@ -269,7 +270,7 @@ const CodeEditor: React.FC<Props> = ({ files, onSelectFile, readonly, selectedFi
 
   return (
     <div className={classes.join(' ')}>
-      <div className={viewMode === 'editor' ? css.hideElement : undefined} id="file-tree">
+      <div className={viewMode === 'editor' ? css.hideElement : undefined}>
         <DirectoryTree
           className={css.fileTree}
           data-testid="fileTree"
