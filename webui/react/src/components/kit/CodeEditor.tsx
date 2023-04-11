@@ -226,18 +226,13 @@ const CodeEditor: React.FC<Props> = ({ files, onSelectFile, readonly, selectedFi
       if (!activeFile) return;
 
       const filePath = String(activeFile?.key);
-      if (isConfig(filePath) && activeFile.content !== NotLoaded) {
-        const url = URL.createObjectURL(
-          Loadable.match(activeFile.content, {
-            Loaded: (content) => new Blob([content]),
-            NotLoaded: () => new Blob(),
-          }),
-        );
+      if (activeFile.content !== NotLoaded) {
+        const url = URL.createObjectURL(new Blob([Loadable.getOrElse('', activeFile.content)]));
         setDownloadInfo({
-          fileName: String(activeFile.download || activeFile.key),
+          fileName: isConfig(filePath) ? activeFile.download || '' : String(activeFile.title),
           url,
         });
-      } else if (activeFile.key) {
+      } else if (activeFile.download) {
         handlePath(e, {
           external: true,
           path: activeFile.download,
