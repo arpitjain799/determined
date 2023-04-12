@@ -1,11 +1,12 @@
 import { DeleteOutlined, HolderOutlined } from '@ant-design/icons';
-import { Select } from 'antd';
 import { useDrag, useDrop } from 'react-dnd';
 
 import Button from 'components/kit/Button';
 import Input from 'components/kit/Input';
 import InputNumber from 'components/kit/InputNumber';
+import Select, { Option } from 'components/kit/Select';
 
+import ConjunctionContainer from './ConjunctionContainer';
 import css from './FilterField.module.scss';
 import { FilterFormStore } from './FilterFormStore';
 import {
@@ -81,29 +82,22 @@ const FilterField = ({
 
   return (
     <div className={css.base} ref={(node) => drop(node)}>
-      <>
-        {index === 0 && <div>if</div>}
-        {index === 1 && (
-          <Select
-            value={conjunction}
-            onChange={(value: string) => {
-              formStore.setFieldValue(parentId, 'conjunction', value);
-            }}>
-            {Object.values(Conjunction).map((c) => (
-              <Select.Option key={c} value={c}>
-                {c}
-              </Select.Option>
-            ))}
-          </Select>
-        )}
-        {index > 1 && <div className={css.conjunction}>{conjunction}</div>}
-      </>
+      <ConjunctionContainer
+        conjunction={conjunction}
+        index={index}
+        onClick={(value) => {
+          formStore.setFieldValue(parentId, 'conjunction', value?.toString() ?? '');
+        }}
+      />
       <div className={css.fieldCard} ref={preview}>
         <Select
+          dropdownMatchSelectWidth={250} // TODO(fix): set corrent width
+          searchable={false}
           value={field.columnName}
-          onChange={(value: string) => {
+          width={'100%'}
+          onChange={(value) => {
             const prevType = ColumnType[field.columnName];
-            formStore.setFieldValue(field.id, 'columnName', value);
+            formStore.setFieldValue(field.id, 'columnName', value?.toString() ?? '');
             if (prevType !== ColumnType[field.columnName]) {
               const defaultOperator = AvaliableOperators[ColumnType[field.columnName]][0];
               formStore.setFieldValue(field.id, 'operator', defaultOperator);
@@ -111,21 +105,22 @@ const FilterField = ({
             }
           }}>
           {Object.keys(ColumnType).map((col) => (
-            <Select.Option key={col} value={col}>
+            <Option key={col} value={col}>
               {col}
-            </Select.Option>
+            </Option>
           ))}
         </Select>
         <Select
-          style={{ width: '100%' }}
+          searchable={false}
           value={field.operator}
-          onChange={(value: Operator) => {
-            formStore.setFieldValue(field.id, 'operator', value);
+          width={'100%'}
+          onChange={(value) => {
+            formStore.setFieldValue(field.id, 'operator', value?.toString() ?? '');
           }}>
           {AvaliableOperators[ColumnType[field.columnName]].map((op) => (
-            <Select.Option key={op} value={op}>
+            <Option key={op} value={op}>
               {op}
-            </Select.Option>
+            </Option>
           ))}
         </Select>
         <>
@@ -142,6 +137,7 @@ const FilterField = ({
           )}
           {ColumnType[field.columnName] === 'number' && (
             <InputNumber
+              className={css.fullWidth}
               value={field.value != null ? Number(field.value) : undefined}
               onChange={(val) =>
                 formStore.setFieldValue(field.id, 'value', val?.toString() ?? null)

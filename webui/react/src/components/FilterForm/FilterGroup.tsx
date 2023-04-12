@@ -1,11 +1,12 @@
 import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
-import { Dropdown, DropDownProps, Select } from 'antd';
+import { Dropdown, DropDownProps } from 'antd';
 import type { MenuProps } from 'antd';
 import { useMemo } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
 import Button from 'components/kit/Button';
 
+import ConjunctionContainer from './ConjunctionContainer';
 import FilterField from './FilterField';
 import { FilterFormStore } from './FilterFormStore';
 import css from './FilterGroup.module.scss';
@@ -108,34 +109,29 @@ const FilterGroup = ({
     return { items: items, onClick: onItemClick };
   }, [formStore, group.children.length, group.id, level]);
 
+  if (level === 0 && group.children.length === 0) {
+    // return empty div if there's nothing to show
+    return <div />;
+  }
+
   return (
     <div className={`${css.base} ${level === 0 ? css.baseRoot : ''}`} ref={(node) => drop(node)}>
       {level > 0 && (
-        <>
-          {index === 0 && <div>if</div>}
-          {index === 1 && (
-            <Select
-              value={conjunction}
-              onChange={(value: string) => {
-                formStore.setFieldValue(parentId, 'conjunction', value);
-              }}>
-              {Object.values(Conjunction).map((c) => (
-                <Select.Option key={c} value={c}>
-                  {c}
-                </Select.Option>
-              ))}
-            </Select>
-          )}
-          {index > 1 && <div className={css.conjunction}>{conjunction}</div>}
-        </>
+        <ConjunctionContainer
+          conjunction={conjunction}
+          index={index}
+          onClick={(value) => {
+            formStore.setFieldValue(parentId, 'conjunction', value?.toString() ?? '');
+          }}
+        />
       )}
-      <div className={css.groupCard} ref={preview}>
+      <div className={`${css.groupCard} ${css[`level${level}`]}`} ref={preview}>
         <div className={css.header}>
-          <div className={css.headerCaption}>
+          <div>
             {group.conjunction === Conjunction.And ? (
-              <div>All of the following coditions are true</div>
+              <div>All of the following conditions are true</div>
             ) : (
-              <div>Some of the following coditions are true</div>
+              <div>Some of the following conditions are true</div>
             )}
           </div>
           <div className={css.headerButtonGroup}>
@@ -183,18 +179,6 @@ const FilterGroup = ({
             }
           })}
         </div>
-        {level === 0 && (
-          <div>
-            <Button
-              onClick={() => formStore.addChild(group.id, FormType.Field, group.children.length)}>
-              + Add condition field
-            </Button>
-            <Button
-              onClick={() => formStore.addChild(group.id, FormType.Group, group.children.length)}>
-              + Add condition group
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
