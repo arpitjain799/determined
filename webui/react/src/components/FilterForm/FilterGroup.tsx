@@ -134,21 +134,21 @@ const FilterGroup = ({
               <div>Some of the following conditions are true</div>
             )}
           </div>
-          <div className={css.headerButtonGroup}>
-            <Dropdown menu={menuItems} trigger={['click']}>
-              <Button icon={<PlusOutlined />} type="text" />
-            </Dropdown>
-            <Button
-              icon={<DeleteOutlined />}
-              type="text"
-              onClick={() => formStore.removeChild(group.id)}
-            />
-            {level > 0 && (
+          {level > 0 && (
+            <div className={css.headerButtonGroup}>
+              <Dropdown menu={menuItems} trigger={['click']}>
+                <Button icon={<PlusOutlined />} type="text" />
+              </Dropdown>
+              <Button
+                icon={<DeleteOutlined />}
+                type="text"
+                onClick={() => formStore.removeChild(group.id)}
+              />
               <div ref={drag}>
                 <Button icon={<HolderOutlined />} type="text" />
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <div className={css.children}>
           {group.children.map((child, i) => {

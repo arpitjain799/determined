@@ -1,4 +1,6 @@
 import { useObservable } from 'micro-observables';
+import { useRef } from 'react';
+import { debounce } from 'throttle-debounce';
 
 import Button from 'components/kit/Button';
 
@@ -12,7 +14,19 @@ interface Props {
 }
 
 const FilterForm = ({ formStore }: Props): JSX.Element => {
+  const scrollBottomRef = useRef<HTMLDivElement>(null);
   const data = useObservable(formStore.formset);
+
+  const onAddItem = (formType: FormType) => {
+    formStore.addChild(data.filterGroup.id, formType, data.filterGroup.children.length);
+    debounce(500, () => {
+      scrollBottomRef?.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+      });
+    })();
+  };
+
   return (
     <div className={css.base}>
       <div className={css.filter}>
@@ -24,29 +38,14 @@ const FilterForm = ({ formStore }: Props): JSX.Element => {
           level={0}
           parentId={data.filterGroup.id}
         />
+        <div ref={scrollBottomRef} />
       </div>
       <div className={css.buttonContainer}>
         <div className={css.addButtonContainer}>
-          <Button
-            type="text"
-            onClick={() =>
-              formStore.addChild(
-                data.filterGroup.id,
-                FormType.Field,
-                data.filterGroup.children.length,
-              )
-            }>
+          <Button type="text" onClick={() => onAddItem(FormType.Field)}>
             + Add condition field
           </Button>
-          <Button
-            type="text"
-            onClick={() =>
-              formStore.addChild(
-                data.filterGroup.id,
-                FormType.Group,
-                data.filterGroup.children.length,
-              )
-            }>
+          <Button type="text" onClick={() => onAddItem(FormType.Group)}>
             + Add condition group
           </Button>
         </div>
