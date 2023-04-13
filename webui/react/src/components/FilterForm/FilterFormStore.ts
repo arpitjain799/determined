@@ -155,15 +155,19 @@ export class FilterFormStore {
     const filterGroup = this.#formset.get().filterGroup;
 
     if (filterGroup.id === id) {
+      // if remove top group
       this.#formset.set(structuredClone(INIT_FORMSET));
       return;
     }
 
     const recur = (form: FormGroup | FormField): void => {
       if (form.type === FormType.Group) {
+        const prevLength = form.children.length;
         form.children = form.children.filter((c) => c.id !== id);
-        for (const child of form.children) {
-          recur(child);
+        if (prevLength === form.children.length) {
+          for (const child of form.children) {
+            recur(child);
+          }
         }
       }
     };
