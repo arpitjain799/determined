@@ -41,6 +41,7 @@ import { Loadable } from 'utils/loadable';
 import { openCommandResponse } from 'utils/wait';
 
 import MultiSortMenu, { Sort } from './MultiSortMenu';
+import { isValidSort } from './MultiSortMenu';
 import css from './TableActionBar.module.scss';
 
 const batchActions = [
@@ -362,6 +363,8 @@ const TableActionBar: React.FC<Props> = ({
     [handleBatchAction],
   );
 
+  const validSortCount = sorts.filter(isValidSort).length;
+
   return (
     <>
       <Space className={css.base}>
@@ -383,7 +386,7 @@ const TableActionBar: React.FC<Props> = ({
           placement="bottomRight"
           showArrow={false}
           trigger="click">
-          <Button>Sort {sorts.length ? `(${sorts.length})` : ''}</Button>
+          <Button>Sort {validSortCount ? `(${validSortCount})` : ''}</Button>
         </Popover>
       </Space>
       {batchAction && (
