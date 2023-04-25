@@ -107,6 +107,19 @@ const F_ExperimentList: React.FC<Props> = ({ project }) => {
     [experimentFilters],
   );
 
+  const resetPagination = useCallback(() => {
+    setPage(0);
+    setExperiments([]);
+  }, []);
+
+  const onSortChange = useCallback(
+    (sorts: Sort[]) => {
+      setSorts(sorts);
+      resetPagination();
+    },
+    [resetPagination],
+  );
+
   const sortString = useMemo(() => makeSortString(sorts.filter(isValidSort)), [sorts]);
 
   const fetchExperiments = useCallback(async (): Promise<void> => {
@@ -214,7 +227,7 @@ const F_ExperimentList: React.FC<Props> = ({ project }) => {
               sorts={sorts}
               total={total}
               onAction={handleOnAction}
-              onSortChange={setSorts}
+              onSortChange={onSortChange}
             />
             <GlideTable
               clearSelectionTrigger={clearSelectionTrigger}
