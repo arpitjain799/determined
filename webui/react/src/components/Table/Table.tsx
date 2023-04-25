@@ -134,7 +134,7 @@ export const taskIdRenderer: TaskRenderer = (_, record) => (
 export const taskTypeRenderer: TaskRenderer = (_, record) => (
   <Tooltip placement="topLeft" title={commandTypeToLabel[record.type as unknown as CommandType]}>
     <div className={css.centerVertically}>
-      <Icon name={record.type.toLowerCase()} />
+      <Icon name={record.type} />
     </div>
   </Tooltip>
 );
