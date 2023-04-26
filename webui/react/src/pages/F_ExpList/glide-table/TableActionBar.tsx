@@ -1,4 +1,4 @@
-import { Menu, Popover, Space } from 'antd';
+import { Menu, Space } from 'antd';
 import { ItemType } from 'rc-menu/lib/interface';
 import React, { Dispatch, SetStateAction, useCallback, useMemo, useState } from 'react';
 
@@ -41,7 +41,6 @@ import { Loadable } from 'utils/loadable';
 import { openCommandResponse } from 'utils/wait';
 
 import MultiSortMenu, { Sort } from './MultiSortMenu';
-import { isValidSort } from './MultiSortMenu';
 import css from './TableActionBar.module.scss';
 
 const batchActions = [
@@ -363,8 +362,6 @@ const TableActionBar: React.FC<Props> = ({
     [handleBatchAction],
   );
 
-  const validSortCount = sorts.filter(isValidSort).length;
-
   return (
     <>
       <Space className={css.base}>
@@ -381,13 +378,7 @@ const TableActionBar: React.FC<Props> = ({
             </Button>
           </Dropdown>
         )}
-        <Popover
-          content={<MultiSortMenu columns={columns} sorts={sorts} onChange={onSortChange} />}
-          placement="bottomRight"
-          showArrow={false}
-          trigger="click">
-          <Button>Sort {validSortCount ? `(${validSortCount})` : ''}</Button>
-        </Popover>
+        <MultiSortMenu columns={columns} sorts={sorts} onChange={onSortChange} />
       </Space>
       {batchAction && (
         <BatchActionConfirmModal.Component
