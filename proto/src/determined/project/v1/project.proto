@@ -32,6 +32,8 @@ enum ColumnType {
   COLUMN_TYPE_NUMBER = 2;
   // data type is a date
   COLUMN_TYPE_DATE = 3;
+  // data type is boolean
+  COLUMN_TYPE_BOOLEAN = 4;
 }
 
 // Project Column is a description of a column used on experiments in the
@@ -47,7 +49,7 @@ message ProjectColumn {
   // Type of data in the column.
   determined.project.v1.ColumnType type = 3;
   // Human-friendly name.
-  string display_name = 4;
+  optional string display_name = 4;
 }
 // Note is a user comment connected to a project.
 message Note {

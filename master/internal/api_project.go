@@ -42,6 +42,10 @@ func (a *apiServer) GetProjectByID(
 	return p, nil
 }
 
+func strPtr(s string) *string {
+	return &s
+}
+
 func (a *apiServer) getProjectColumnsByID(
 	ctx context.Context, id int32, curUser model.User,
 ) (*apiv1.GetProjectColumnsResponse, error) {
@@ -53,91 +57,91 @@ func (a *apiServer) getProjectColumnsByID(
 	columns := []*projectv1.ProjectColumn{
 		{
 			Column:      "id",
-			DisplayName: "ID",
+			DisplayName: strPtr("ID"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_NUMBER,
 		},
 		{
 			Column:      "name",
-			DisplayName: "Name",
+			DisplayName: strPtr("Name"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_TEXT,
 		},
 		{
 			Column:      "description",
-			DisplayName: "Description",
+			DisplayName: strPtr("Description"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_TEXT,
 		},
 		{
 			Column:      "tags",
-			DisplayName: "Tags",
+			DisplayName: strPtr("Tags"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_TEXT,
 		},
 		{
 			Column:      "forkedFrom",
-			DisplayName: "Forked",
+			DisplayName: strPtr("Forked"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_NUMBER,
 		},
 		{
 			Column:      "startTime",
-			DisplayName: "Start time",
+			DisplayName: strPtr("Start time"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_DATE,
 		},
 		{
 			Column:      "duration",
-			DisplayName: "Duration",
+			DisplayName: strPtr("Duration"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_NUMBER,
 		},
 		{
 			Column:      "numTrials",
-			DisplayName: "Trial count",
+			DisplayName: strPtr("Trial count"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_NUMBER,
 		},
 		{
 			Column:      "state",
-			DisplayName: "State",
+			DisplayName: strPtr("State"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_TEXT,
 		},
 		{
 			Column:      "searcherType",
-			DisplayName: "Searcher type",
+			DisplayName: strPtr("Searcher type"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_TEXT,
 		},
 		{
 			Column:      "resourcePool",
-			DisplayName: "Resource pool",
+			DisplayName: strPtr("Resource pool"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_TEXT,
 		},
 		{
 			Column:      "progress",
-			DisplayName: "Progress",
+			DisplayName: strPtr("Progress"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_NUMBER,
 		},
 		{
 			Column:      "checkpointSize",
-			DisplayName: "Checkpoint size",
+			DisplayName: strPtr("Checkpoint size"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_NUMBER,
 		},
 		{
 			Column:      "checkpointCount",
-			DisplayName: "Checkpoint count",
+			DisplayName: strPtr("Checkpoint count"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_NUMBER,
 		},
 		{
 			Column:      "user",
-			DisplayName: "User",
+			DisplayName: strPtr("User"),
 			Location:    projectv1.LocationType_LOCATION_TYPE_EXPERIMENT,
 			Type:        projectv1.ColumnType_COLUMN_TYPE_TEXT,
 		},
@@ -200,6 +204,8 @@ func (a *apiServer) getProjectColumnsByID(
 						columnType = projectv1.ColumnType_COLUMN_TYPE_NUMBER
 					case string:
 						columnType = projectv1.ColumnType_COLUMN_TYPE_TEXT
+					case bool:
+						columnType = projectv1.ColumnType_COLUMN_TYPE_BOOLEAN
 					default:
 						columnType = projectv1.ColumnType_COLUMN_TYPE_UNSPECIFIED
 					}

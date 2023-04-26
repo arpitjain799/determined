@@ -1796,6 +1796,7 @@ class v1ColumnType(enum.Enum):
     TEXT = "COLUMN_TYPE_TEXT"
     NUMBER = "COLUMN_TYPE_NUMBER"
     DATE = "COLUMN_TYPE_DATE"
+    BOOLEAN = "COLUMN_TYPE_BOOLEAN"
 
 class v1Command:
     container: "typing.Optional[v1Container]" = None

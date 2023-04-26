@@ -1720,7 +1720,7 @@ export interface V1ColumnFilter {
     filter?: V1DoubleFieldFilter;
 }
 /**
- * - COLUMN_TYPE_UNSPECIFIED: data type is unknown/mixed  - COLUMN_TYPE_TEXT: data type is textual  - COLUMN_TYPE_NUMBER: data type is numeric  - COLUMN_TYPE_DATE: data type is a date
+ * - COLUMN_TYPE_UNSPECIFIED: data type is unknown/mixed  - COLUMN_TYPE_TEXT: data type is textual  - COLUMN_TYPE_NUMBER: data type is numeric  - COLUMN_TYPE_DATE: data type is a date  - COLUMN_TYPE_BOOLEAN: data type is boolean
  * @export
  * @enum {string}
  */
@@ -1729,6 +1729,7 @@ export const V1ColumnType = {
     TEXT: 'COLUMN_TYPE_TEXT',
     NUMBER: 'COLUMN_TYPE_NUMBER',
     DATE: 'COLUMN_TYPE_DATE',
+    BOOLEAN: 'COLUMN_TYPE_BOOLEAN',
 } as const
 export type V1ColumnType = ValueOf<typeof V1ColumnType>
 /**
