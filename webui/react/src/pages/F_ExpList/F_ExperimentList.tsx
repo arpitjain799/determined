@@ -208,6 +208,19 @@ const F_ExperimentList: React.FC<Props> = ({ project }) => {
       docTitle={project.id === 1 ? 'Uncategorized Experiments' : 'Project Details'}
       id="projectDetails">
       <>
+        <TableActionBar
+          columns={columns}
+          experiments={experiments}
+          filters={experimentFilters}
+          project={project}
+          selectAll={selectAll}
+          selectedExperimentIds={selectedExperimentIds}
+          setExperiments={setExperiments}
+          sorts={sorts}
+          total={total}
+          onAction={handleOnAction}
+          onSortChange={onSortChange}
+        />
         {isLoading ? (
           <Loading width={width} />
         ) : experiments.length === 0 ? (
@@ -219,38 +232,23 @@ const F_ExperimentList: React.FC<Props> = ({ project }) => {
         ) : error ? (
           <Error />
         ) : (
-          <>
-            <TableActionBar
-              columns={columns}
-              experiments={experiments}
-              filters={experimentFilters}
-              project={project}
-              selectAll={selectAll}
-              selectedExperimentIds={selectedExperimentIds}
-              setExperiments={setExperiments}
-              sorts={sorts}
-              total={total}
-              onAction={handleOnAction}
-              onSortChange={onSortChange}
-            />
-            <GlideTable
-              clearSelectionTrigger={clearSelectionTrigger}
-              colorMap={colorMap}
-              data={experiments}
-              fetchExperiments={fetchExperiments}
-              handleScroll={handleScroll}
-              height={height}
-              page={page}
-              project={project}
-              scrollPositionSetCount={scrollPositionSetCount}
-              selectAll={selectAll}
-              selectedExperimentIds={selectedExperimentIds}
-              setSelectAll={setSelectAll}
-              setSelectedExperimentIds={setSelectedExperimentIds}
-              setSortableColumnIds={setSortableColumnIds}
-              sortableColumnIds={sortableColumnIds}
-            />
-          </>
+          <GlideTable
+            clearSelectionTrigger={clearSelectionTrigger}
+            colorMap={colorMap}
+            data={experiments}
+            fetchExperiments={fetchExperiments}
+            handleScroll={handleScroll}
+            height={height}
+            page={page}
+            project={project}
+            scrollPositionSetCount={scrollPositionSetCount}
+            selectAll={selectAll}
+            selectedExperimentIds={selectedExperimentIds}
+            setSelectAll={setSelectAll}
+            setSelectedExperimentIds={setSelectedExperimentIds}
+            setSortableColumnIds={setSortableColumnIds}
+            sortableColumnIds={sortableColumnIds}
+          />
         )}
       </>
     </Page>
