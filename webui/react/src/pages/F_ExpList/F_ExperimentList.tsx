@@ -1,8 +1,10 @@
 import { Rectangle } from '@glideapps/glide-data-grid';
+import { Space } from 'antd';
 import { observable } from 'micro-observables';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import TableFilter from 'components/FilterForm/TableFilter';
 import Page from 'components/Page';
 import useResize from 'hooks/useResize';
 import { searchExperiments } from 'services/api';
@@ -155,16 +157,19 @@ const F_ExperimentList: React.FC<Props> = ({ project }) => {
           <Error />
         ) : (
           <>
-            <TableActionBar
-              experiments={experiments}
-              filters={experimentFilters}
-              project={project}
-              selectAll={selectAll}
-              selectedExperimentIds={selectedExperimentIds}
-              setExperiments={setExperiments}
-              total={total}
-              onAction={handleOnAction}
-            />
+            <Space align="center" style={{ marginBottom: '8px' }}>
+              <TableFilter />
+              <TableActionBar
+                experiments={experiments}
+                filters={experimentFilters}
+                project={project}
+                selectAll={selectAll}
+                selectedExperimentIds={selectedExperimentIds}
+                setExperiments={setExperiments}
+                total={total}
+                onAction={handleOnAction}
+              />
+            </Space>
             <GlideTable
               clearSelectionTrigger={clearSelectionTrigger}
               colorMap={colorMap}
