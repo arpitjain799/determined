@@ -133,8 +133,6 @@ pre-package:
 	mkdir -p build/webui/react
 	mkdir -p build/wheels/
 	cp -r ../proto/build/swagger build/swagger
-	cp -r ../docs/site/html/* build/webui/docs
-	cp -r ../webui/react/build/* build/webui/react
 	cp ../harness/dist/*.whl build/wheels/
 
 .PHONY: buildx

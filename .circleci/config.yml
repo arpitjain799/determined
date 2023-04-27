@@ -1053,29 +1053,15 @@ jobs:
       - setup-python-venv:
           install-python: false
           determined: true
-          extras-requires: "tensorflow==2.12.0 torch==1.9.0 torchvision==0.10.0"
-          model-hub: true
-          extra-requirements-file: "docs/requirements.txt"
           executor: <<pipeline.parameters.docker-image>>
-      - run: make -C examples build
-      - run: make -C model_hub examples
-      - run: make -C helm build
       - attach_workspace:
           at: .
-      - run: make -C docs build
       - persist_to_workspace:
           root: .
           paths:
-            - examples/build
             - cli/dist
             - common/dist
             - harness/dist
-            - model_hub/dist
-            - docs/build
-            - docs/site
-      - run: tar czf docs.tgz docs/site/html
-      - store_artifacts:
-          path: docs.tgz
 
   scrape-docs:
     docker:
@@ -1158,24 +1144,6 @@ jobs:
           check: false
       - make-package
       - run: tools/scripts/retry.sh make -C master publish-dev
-      - run: tools/scripts/retry.sh make -C agent publish-dev
-      - run:
-          name: Build and publish model_hub docker images
-          command: |
-            if [ ${CIRCLE_BRANCH} = 'master' ] || [[ ${CIRCLE_BRANCH} == *"release-"* ]]; then
-                # For master and release branches, we will tag and publish both the environment
-                # with the git hash as well as the version.  This will make that image available
-                # immediately for nightly tests.
-                make -C model_hub build-docker
-                tools/scripts/retry.sh make -C model_hub publish-docker
-            else
-                # Otherwise, only tag and publish the environment with the git hash.
-                make -C model_hub build-docker-dev
-                tools/scripts/retry.sh make -C model_hub publish-docker-dev
-            fi
-      - run: mkdir /tmp/pkgs && cp -v */dist/*.{rpm,deb,tar.gz} /tmp/pkgs
-      - store_artifacts:
-          path: /tmp/pkgs
 
   package-and-push-system-rc:
     docker:
@@ -2059,6 +2027,7 @@ jobs:
         default: ""
     environment:
       DET_TEST_GPU_ENABLED: <<parameters.environment-gpu-enabled>>
+      GOOGLE_PROJECT_ID: determined-ai
     docker:
       - image: <<pipeline.parameters.docker-image>>
     parallelism: <<parameters.parallelism>>
@@ -2104,9 +2073,9 @@ jobs:
       - run-e2e-tests:
           mark: <<parameters.mark>>
           master-host: ${MASTER_HOST}
-      # - terminate-gke-cluster:
-      #     cluster-id: ${CLUSTER_ID}
-      #     region: <<parameters.region>>
+      - terminate-gke-cluster:
+          cluster-id: ${CLUSTER_ID}
+          region: <<parameters.region>>
       - slack/status:
           fail_only: True
           only_for_branches: main
@@ -2278,168 +2247,6 @@ workflows:
             - build-react
             - build-docs
           filters: *any-upstream
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
-
-      - test-e2e-gke:
-          name: test-e2e-gke-parallel-tfonly
-          context: gcp-ci
-          filters: *upstream-feature-branch
-          requires:
-            - package-and-push-system-dev
-          matrix:
-            parameters:
-              cluster-id-prefix: ["parallel-tfonly"]
-              mark: ["parallel and tensorflow2"]
-              parallelism: [1]
-              slack-mentions: ["${SLACK_USER_ID}"]
-              machine-type: ["n1-standard-32"]
-              gpus-per-machine: [4]
-              num-machines: [2]
-              environment-image:
-                - determinedai/environments:cuda-11.1-pytorch-1.9-tf-2.4-gpu-0.19.10
 
       - test-e2e-gke:
           name: test-e2e-gke-parallel-tfonly

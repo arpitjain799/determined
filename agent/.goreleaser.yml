@@ -10,6 +10,9 @@ builds:
     goarch:
       - amd64
 
+archives:
+  - format: binary
+
 dockers:
   # amd64
   - goos: linux
